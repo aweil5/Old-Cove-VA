@@ -1,0 +1,5 @@
+#Environment Vars
+.env
+
+#Token Cache
+token_cache.bin
