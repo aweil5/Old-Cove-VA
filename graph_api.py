@@ -77,6 +77,7 @@ def get_emails(access_token : str):
     }
 
     # Can Hardcode Folder ID since we know exactly what user will be running this script each time
+    # This is the folder ID for clients who are whitelisted so we ensure only the correct people are getting the response
     FOLDER_ID = "/me/mailFolders/AAMkAGU4NmJiM2E4LTdiMGMtNGE1My1hYjY1LWRlMGE4Y2E1MGJjMAAuAAAAAAD_Fd4hHakzSb8Dz7puAPhoAQDOBYS3gFwMTZ4rTkBHS0CiAAAH3vTOAAA=/messages"
     FOLDER_ENDPOINT = BASE_URL + FOLDER_ID
 
