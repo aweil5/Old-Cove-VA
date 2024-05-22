@@ -6,8 +6,11 @@ import requests
 import json
 import os
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 # READ IN GLOBAL VARIABLES FROM ENV FILE
 APPLICATION_ID = os.environ.get('APPLICATION_ID')
@@ -82,9 +85,9 @@ def get_emails(access_token : str):
 
     # END POINT TO RECIEVE ALL EMAISL IN WHITELIST FOLDER
     response = requests.get(FOLDER_ENDPOINT, headers=headers)
-    print(f"Email Reading Status: {response}")
+    logging.info(f"Email Reading Status: {response}")
     if response.status_code != 200:
-        print("There has been an error when processing your emails")
+        logging.error("There has been an error when processing your emails")
         return None
     else:
     # Add error handling here to deal with improper Request Call
@@ -165,14 +168,14 @@ def read_and_send_emails():
                     else:
                         send_message(ai_response, message['id'], access_token, "NO_NAME")
                 else:
-                    print("Encounterd an Error When Responding to an Email")
+                    logging.error("Encounterd an Error When Responding to an Email")
                     flag_email(message['id'], access_token)
                 update_email(message['id'], access_token)
 
-    print("Finished replying to Emails: 200")
+    logging.info("Finished replying to Emails: 200")
 
 
-def get_folder_id(access_token):
+def get_folder_id(access_token : str):
     ENDPOINT = "https://graph.microsoft.com/v1.0/me/mailFolders"
     headers = {
         'Authorization': 'Bearer ' + access_token

@@ -5,16 +5,16 @@ import time
 import logging
 from datetime import datetime
 import os
+from langchain import LLMChain
+from langchain.prompts import PromptTemplate
+from langchain.llms import OpenAI
 
 load_dotenv()
-# openai.api_key = os.environ.get("OPENAI_API_KEY")
-# defaults to getting the key using os.environ.get("OPENAI_API_KEY")
-# if you saved the key under a different environment variable name, you can do something like:
-# client = OpenAI(
-#   api_key=os.environ.get("CUSTOM_ENV_NAME"),
-# )
-
 client = openai.OpenAI()
+
+
+# Init Logger
+logger = logging.getLogger(__name__)
 
 # === Hardcode our ids ==
 assistant_id1 = os.environ.get("OPENAI_ASSISTANT_ID")
@@ -23,6 +23,7 @@ def create_thread():
     thread = client.beta.threads.create(
     )
     return thread.id
+
 # ==== Create a Message ====
 def help_user(client_message:str, thread_id : str):
     message = client_message
@@ -48,21 +49,6 @@ def help_user(client_message:str, thread_id : str):
         return message
     else:
         return "ERROR"
-    # ==== Steps --- Logs ==
-    # run_steps = client.beta.threads.runs.steps.list(thread_id=thread_id, run_id=run.id)
-    # print(f"Steps---> {run_steps.data[0]}")
-
-    # DO NOT NEED WHILE OR TRY SINCE HANDLED BY WAIT_FOR_RUN_COMPLETION
-    # run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
-    # if run.completed_at:
-    #     messages = client.beta.threads.messages.list(thread_id=thread_id)
-    #     last_message = messages.data[0]
-    #     response = last_message.content[0].text.value
-    #     return response
-    # else:
-    #     return "ERROR"
-
-
 
 
 def wait_for_run_completion(client, thread_id, run_id, sleep_interval=5):
@@ -80,7 +66,6 @@ def wait_for_run_completion(client, thread_id, run_id, sleep_interval=5):
                 formatted_elapsed_time = time.strftime(
                     "%H:%M:%S", time.gmtime(elapsed_time)
                 )
-                print(f"Run completed in {formatted_elapsed_time}")
                 logging.info(f"Run completed in {formatted_elapsed_time}")
                 # Get messages here once Run is completed!
                 messages = client.beta.threads.messages.list(thread_id=thread_id)
@@ -95,65 +80,56 @@ def wait_for_run_completion(client, thread_id, run_id, sleep_interval=5):
         time.sleep(sleep_interval)
 
 
+def handle_tech():
+    print("Handling spam email.")
+
+def handle_billing():
+    print("Handling promotional email.")
+
+def handle_walkthrough():
+    print("Handling other types of email.")
+
+def handle_other():
+    print("Other type")
+
+def email_analysis(client_message : str, thread_id : str):
+    # Analyzes Email Body and determines the type of email written
+    # Then calls the correct function to get a proper response to the person which will be returned
+
+    email_types = ['TECH_HELP', 'BILLING', 'WALKTHROUGH']
+
+    # Craft the prompt template
+    prompt_template = PromptTemplate(
+        input_variables=["email_text"],
+        template="""
+        Analyze the following email and return the type of email. The type of email should be one of the following values:
+        - SPAM
+        - PROMOTION
+        - OTHER
+        
+        Email:
+        {email_text}
+        
+        Type of email:
+        """
+    )
+
+    # Initialize the LLMChain
+    llm = OpenAI(temperature=0, max_tokens=10)  # Using deterministic settings
+    chain = LLMChain(llm=llm, prompt=prompt_template)
+
+    response = chain.run({"email_text": client_message})
+    email_type = response.strip().upper()
+    
+    if email_type == 'TECH_HELP':
+        handle_tech()
+    elif email_type == 'PROMOTION':
+        handle_billing()
+    elif email_type == 'WALKTHROUGH':
+        handle_walkthrough()
+    else:
+        handle_other()
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# def main():
-#     thread_id = "thread_ov3LJSohjBb22TQJiDjq2OSh"
-#     print("Calling func")
-#     print(help_user("My lurtron dimmer is not working, how do i fix it?", thread_id))
-
-# main()
-
-
-# # ==  Create our Assistant (Uncomment this to create your assistant) ==
-# personal_trainer_assis = client.beta.assistants.create(
-#     name="Personal Trainer",
-#     instructions="""You are the best personal trainer and nutritionist who knows how to get clients to build lean muscles.\n
-#      You've trained high-caliber athletes and movie stars. """,
-#     model=model,
-# )
-# asistant_id = personal_trainer_assis.id
-# print(asistant_id)
-
-
-# === Thread (uncomment this to create your Thread) ===
-# thread = client.beta.threads.create(
-#     messages=[
-#         {
-#             "role": "user",
-#             "content": "How do I get started working out to lose fat and build muscles?",
-#         }
-#     ]
-# )
-# thread_id = thread.id
-# print(thread_id)
