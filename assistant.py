@@ -8,6 +8,7 @@ import os
 from langchain import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain.llms import OpenAI
+import json
 
 load_dotenv()
 client = openai.OpenAI()
@@ -80,55 +81,72 @@ def wait_for_run_completion(client, thread_id, run_id, sleep_interval=5):
         time.sleep(sleep_interval)
 
 
-def handle_tech():
-    print("Handling spam email.")
+
+# Function definitions for model to call 
+# Each will have its own unique assistant to call depending on needs of email type
+def handle_simple_tech_help(message : str):
+    print("Handling Tech Help Email.")
 
 def handle_billing():
-    print("Handling promotional email.")
+    print("Handling Billing email.")
 
-def handle_walkthrough():
-    print("Handling other types of email.")
+def handle_walkthrough(message : str, location : str  = "NO ADDRESS PROVIDED"):
+    print(f"Handling Walkthrough Email at {location}")
 
 def handle_other():
-    print("Other type")
+    print("Could not determine email type")
 
-def email_analysis(client_message : str, thread_id : str):
-    # Analyzes Email Body and determines the type of email written
-    # Then calls the correct function to get a proper response to the person which will be returned
-
-    email_types = ['TECH_HELP', 'BILLING', 'WALKTHROUGH']
-
-    # Craft the prompt template
-    prompt_template = PromptTemplate(
-        input_variables=["email_text"],
-        template="""
-        Analyze the following email and return the type of email. The type of email should be one of the following values:
-        - SPAM
-        - PROMOTION
-        - OTHER
-        
-        Email:
-        {email_text}
-        
-        Type of email:
-        """
-    )
-
-    # Initialize the LLMChain
-    llm = OpenAI(temperature=0, max_tokens=10)  # Using deterministic settings
-    chain = LLMChain(llm=llm, prompt=prompt_template)
-
-    response = chain.run({"email_text": client_message})
-    email_type = response.strip().upper()
+def email_analysis():
     
-    if email_type == 'TECH_HELP':
-        handle_tech()
-    elif email_type == 'PROMOTION':
-        handle_billing()
-    elif email_type == 'WALKTHROUGH':
-        handle_walkthrough()
-    else:
-        handle_other()
+    # Test Message
+    messages = [{"role": "user", 
+                 "content": "I would like to schedule a walkthrough for an upcoming project in cos cob connecticut",}]
+
+    # WRITING ALL THE FUNCTIONS IN A JSON LIST THAT THE MODEL IS CAPABLE OF CALLING
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "handle_walkthrough",
+                "description": "This will handle scheduling a walkthrough for a client",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "message": {
+                            "type" : "string",
+                            "description": "This will be the actual content that is being analyzed, but with all the html tags removed.",
+                        },
+                        "location": {
+                            "type": "string",
+                            "description": """The location where the walkthrough would take place. This can be in the
+                            form of an address or a city. Eg 113 lower crest rd, or Cos Cob Connecticut. """,
+                        },
+                    },
+                },
+                "required": ["message"],
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "handle_simple_tech_help",
+                "description": "This function will assist a user ",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "message": {
+                            "type": "string",
+                            "description": "This will be the actual content that is being analyzed, but with all the html tags removed.",
+                        },
+                        
+                    },
+                    "required": ["message"]
+                },
+            }
+        },
+    ]
+
+    return
 
 
 
