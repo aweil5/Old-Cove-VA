@@ -36,7 +36,7 @@ def help_user(client_message: str, thread_id: str):
     run = client.beta.threads.runs.create(
         thread_id=thread_id,
         assistant_id=str(assistant_id1),
-        instructions="Please make the instructions very clear and as concise as possible. DO NOT WRITE ANY FROM OF INTRODUCTION. Seperate each tip with 2 newlines and number each tip. Answer their message and only their message. End the message with a kind goodbye and signing the email with your name, Doug.",
+        instructions="Please make the instructions very clear and as concise as possible. Answer the users tech help if you are confident in your answer. Otherwise recognize you did not understand their message and call the function provided. DO NOT WRITE ANY FROM OF INTRODUCTION. End the message with a kind goodbye and signing the email with your name, Doug.",
     )
 
     # === Run ===
@@ -48,14 +48,18 @@ def help_user(client_message: str, thread_id: str):
         return "ERROR"
 
 
-def handle_simple_tech_help(message: str):
-    print("Handling Tech Help Email.")
-    return "Handled!"
-
-
-def handle_walkthrough(location: str = "NO ADDRESS PROVIDED"):
-    print(f"Handling Walkthrough Email at {location}")
-    return "made walkthrough!"
+def handle_appointment(appointment_type: str):
+    if appointment_type == 'CONFERENCE-TECH-HELP':
+        print("need conference")
+        return "it looks like you need a conference call, here is the link to schedule time : https://schedumle.com"
+    if appointment_type == "ESTIMATE":
+        print("need estimate")
+        return "it looks like you need to schedule an estimate, here is the link to schedule time : https://schedumle.com"
+    if appointment_type == "WALKTHROUGH":
+        print("need WALKTHROUGH")
+        return "it looks like you need to schedule an estimate, here is the link to schedule time : https://schedumle.com"
+    else:
+        print("I could not fully understand your needs from your message, here is time to schedule for us to talk. https://schedumle.com")
 
 
 # Analysis of Run State
@@ -85,16 +89,8 @@ def wait_for_run_completion(client, thread_id, run_id, sleep_interval=5):
                     print(action)
 
                     # Cases for different available functions
-                    if function_name == "handle_walkthrough":
-                        output = handle_walkthrough(arguments['location'])
-                        tools_output.append(
-                            {
-                                'tool_call_id': action['id'],
-                                'output' : output
-                            }
-                        )
-                    elif function_name == "handle_simple_tech_help":
-                        output = handle_simple_tech_help(arguments['message'])
+                    if function_name == "handle_appointment":
+                        output = handle_appointment(arguments['appointment_type'])
                         tools_output.append(
                             {
                                 'tool_call_id': action['id'],
@@ -124,7 +120,8 @@ def wait_for_run_completion(client, thread_id, run_id, sleep_interval=5):
                 messages = client.beta.threads.messages.list(thread_id=thread_id)
                 last_message = messages.data[0]
                 response = last_message.content[0].text.value
-                print(last_message)
+                print(response)
+                
                 return response
 
         except Exception as e:
@@ -134,4 +131,4 @@ def wait_for_run_completion(client, thread_id, run_id, sleep_interval=5):
         time.sleep(sleep_interval)
 
 
-help_user("I would like to schedule a walkthrough at 113 dempsey", create_thread())
+help_user("I need to confernce with you about my sonos amp. Nothing you have told me has worked I need to talk with you.", create_thread())
