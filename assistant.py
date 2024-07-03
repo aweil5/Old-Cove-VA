@@ -15,6 +15,10 @@ logger = logging.getLogger(__name__)
 
 # === Hardcode our ids ==
 assistant_id1 = os.environ.get("OPENAI_ASSISTANT_ID")
+CONFERENCE_TECH_HELP = os.environ.get("CONFERENCE_TECH_HELP")
+ESTIMATE = os.environ.get("ESTIMATE")
+WALKTHROUGH = os.environ.get("WALKTHROUGH")
+IN_PERSON_TECH_HELP = os.environ.get("IN_PERSON_TECH_HELP")
 
 
 def create_thread():
@@ -36,7 +40,7 @@ def help_user(client_message: str, thread_id: str):
     run = client.beta.threads.runs.create(
         thread_id=thread_id,
         assistant_id=str(assistant_id1),
-        instructions="Please make the instructions very clear and as concise as possible. Answer the users tech help if you are confident in your answer. Otherwise recognize you did not understand their message and call the function provided. DO NOT WRITE ANY FROM OF INTRODUCTION. End the message with a kind goodbye and signing the email with your name, Doug.",
+        instructions="Please make the instructions very clear and as concise as possible, do not cite where you find your information. Do not call any function if you can confidently answer. DO NOT WRITE ANY FROM OF INTRODUCTION. End the message with a kind goodbye and signing the email with your name, Doug.",
     )
 
     # === Run ===
@@ -50,16 +54,15 @@ def help_user(client_message: str, thread_id: str):
 
 def handle_appointment(appointment_type: str):
     if appointment_type == 'CONFERENCE-TECH-HELP':
-        print("need conference")
-        return "it looks like you need a conference call, here is the link to schedule time : https://schedumle.com"
+        return f"Link to schedule in person tech help: {CONFERENCE_TECH_HELP}"
+    if appointment_type == 'IN-PERSON-TECH-HELP':
+        return f"Link to schedule in person tech help: {IN_PERSON_TECH_HELP}"
     if appointment_type == "ESTIMATE":
-        print("need estimate")
-        return "it looks like you need to schedule an estimate, here is the link to schedule time : https://schedumle.com"
+        return f"Link to schedule in person tech help: {ESTIMATE}"
     if appointment_type == "WALKTHROUGH":
-        print("need WALKTHROUGH")
-        return "it looks like you need to schedule an estimate, here is the link to schedule time : https://schedumle.com"
+        return f"Link to schedule in person tech help: {WALKTHROUGH}"
     else:
-        print("I could not fully understand your needs from your message, here is time to schedule for us to talk. https://schedumle.com")
+        f"Link to schedule in time to conference with a person to understand needs: https://calendly.com/oldcove15"
 
 
 # Analysis of Run State
@@ -75,7 +78,6 @@ def wait_for_run_completion(client, thread_id, run_id, sleep_interval=5):
         try:
             run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run_id)
             status = run.status
-            # print(f"Current Status: {status}")
             if run.status == "requires_action":
 
                 # Parsing required action
@@ -86,7 +88,6 @@ def wait_for_run_completion(client, thread_id, run_id, sleep_interval=5):
                 for action in required_action["tool_calls"]:
                     function_name = action['function']['name']
                     arguments = json.loads(action['function']['arguments'])
-                    print(action)
 
                     # Cases for different available functions
                     if function_name == "handle_appointment":
@@ -98,10 +99,10 @@ def wait_for_run_completion(client, thread_id, run_id, sleep_interval=5):
                             }
                         )
                     else:
-                        print("FUNCTION NOT FOUND")
+                        logging.error('CALLED FOR A FUNC BUT NONE FOUND')
                 # Submit Tool output back to Assistant
 
-                print("fin the function calls")
+                logging.info(msg="Finished Function Calls")
                 client.beta.threads.runs.submit_tool_outputs(
                     thread_id = thread_id,
                     run_id = run_id,
@@ -131,4 +132,3 @@ def wait_for_run_completion(client, thread_id, run_id, sleep_interval=5):
         time.sleep(sleep_interval)
 
 
-help_user("I need to confernce with you about my sonos amp. Nothing you have told me has worked I need to talk with you.", create_thread())
